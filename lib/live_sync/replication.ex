@@ -7,12 +7,6 @@ defmodule LiveSync.Replication do
   require Logger
 
   def start_link(opts) do
-    name = Keyword.get(opts, :name)
-
-    if not is_atom(name) or name == nil do
-      raise ArgumentError, "an atom :name is required when starting #{inspect(__MODULE__)}"
-    end
-
     opts = Keyword.put_new(opts, :auto_reconnect, true)
     Postgrex.ReplicationConnection.start_link(__MODULE__, [otp_app: opts[:otp_app]], opts)
   end
@@ -46,13 +40,6 @@ defmodule LiveSync.Replication do
     end
   end
 
-  @doc """
-  Use to emulate a disconnection from the database.
-  """
-  def disconnect(name) do
-    send(name, :disconnect)
-  end
-
   ## Callbacks
 
   @impl true
@@ -60,7 +47,7 @@ defmodule LiveSync.Replication do
     path = Application.app_dir(opts[:otp_app], "ebin")
 
     schemas =
-      LiveSync.Sync
+      LiveSync.Watch
       |> Protocol.extract_impls([path])
       |> Map.new(fn schema ->
         opts = LiveSync.opts(schema)
@@ -177,8 +164,7 @@ defmodule LiveSync.Replication do
       <<?D, oid::32, ?K, count::16, tuple_data::binary>> when is_list(state.replication) ->
         handle_tuple_data(:delete, oid, count, tuple_data, state)
 
-      msg ->
-        IO.inspect(msg, limit: :infinity)
+      _msg ->
         {:noreply, state}
     end
   end
@@ -230,9 +216,19 @@ defmodule LiveSync.Replication do
 
             value =
               case fields[k] do
-                :boolean -> v == "t"
+                :boolean ->
+                  v == "t"
+
+                :binary_id ->
+                  <<"\\x", a1, a2, a3, a4, a5, a6, a7, a8, b1, b2, b3, b4, c1, c2, c3, c4, d1, d2, d3, d4, e1, e2, e3, e4,
+                    e5, e6, e7, e8, e9, e10, e11, e12>> = v
+
+                  <<a1, a2, a3, a4, a5, a6, a7, a8, ?-, b1, b2, b3, b4, ?-, c1, c2, c3, c4, ?-, d1, d2, d3, d4, ?-, e1,
+                    e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12>>
+
                 # TODO: handle errors
-                type -> Ecto.Type.cast!(type, v)
+                type ->
+                  Ecto.Type.cast!(type, v)
               end
 
             {field, value}
@@ -283,6 +279,6 @@ defmodule LiveSync.Replication do
   defp current_time, do: System.os_time(:microsecond) - @epoch
 
   defp random_slot_name do
-    "phx_sync_" <> Base.encode32(:crypto.strong_rand_bytes(5), case: :lower)
+    "live_sync_" <> Base.encode32(:crypto.strong_rand_bytes(5), case: :lower)
   end
 end

@@ -6,6 +6,7 @@ defmodule LiveSync.MixProject do
       app: :live_sync,
       version: "0.1.0-beta.2",
       elixir: "~> 1.17",
+      elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       package: package(),
@@ -19,6 +20,9 @@ defmodule LiveSync.MixProject do
     ]
   end
 
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_env), do: ["lib"]
+
   def application do
     [
       extra_applications: [:logger, :runtime_tools]
@@ -27,6 +31,7 @@ defmodule LiveSync.MixProject do
 
   defp package do
     [
+      maintainers: ["Michael St Clair"],
       description: "LiveView Sync Engine",
       files: ~w(lib .formatter.exs mix.exs README.md),
       links: %{"GitHub" => "https://github.com/devhub-tools/live-sync"},
@@ -37,6 +42,7 @@ defmodule LiveSync.MixProject do
   defp deps do
     [
       {:ecto, "~> 3.12"},
+      {:ecto_sql, "~> 3.12"},
       {:phoenix_live_view, "~> 1.0"},
       {:postgrex, "~> 0.19"},
       # dev/test deps
