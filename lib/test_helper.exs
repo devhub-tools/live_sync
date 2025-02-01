@@ -1,4 +1,5 @@
 LiveSync.Repo.start_link()
+LiveSync.Endpoint.start_link()
 
 LiveSync.Repo.query!("DROP TABLE IF EXISTS examples;")
 

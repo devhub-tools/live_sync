@@ -1,6 +1,11 @@
 import Config
 
 if config_env() == :test do
+  config :live_sync, LiveSync.Endpoint,
+    live_view: [signing_salt: "Ka2S3KAh"],
+    secret_key_base: "dLwJuHuEGKSvwf0TKaE+5CT/9ksLVQhJdwKU9Z6zpaHbnGvTuJH+nTMZNVR7jhO0",
+    server: false
+
   config :live_sync, LiveSync.Repo,
     username: "postgres",
     password: "postgres",
@@ -10,4 +15,6 @@ if config_env() == :test do
     pool_size: System.schedulers_online() * 2
 
   config :live_sync, ecto_repos: [LiveSync.Repo]
+
+  config :logger, level: :error
 end

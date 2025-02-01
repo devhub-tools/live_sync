@@ -52,6 +52,7 @@ defmodule LiveSync.Socket do
         if socket_acc.assigns[key] == value do
           socket_acc
         else
+          value = if value == :delete, do: nil, else: value
           socket_acc.view.sync(key, value, socket_acc)
         end
       end)

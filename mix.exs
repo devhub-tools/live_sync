@@ -49,6 +49,7 @@ defmodule LiveSync.MixProject do
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:excoveralls, "~> 0.10", only: :test},
+      {:floki, ">= 0.30.0", only: :test},
       {:mix_audit, "~> 2.0", only: [:dev, :test], runtime: false},
       {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false},
       {:styler, "~> 1.0", only: [:dev, :test], runtime: false}

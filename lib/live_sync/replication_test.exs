@@ -17,10 +17,10 @@ defmodule LiveSync.ReplicationTest do
 
     {:ok, id} =
       Repo.transaction(fn ->
-        item = Repo.insert!(%Example{name: "replication", enabled: false})
-        item = Repo.update!(change(item, name: "more replication", enabled: true))
-        Repo.delete!(item)
-        item.id
+        example = Repo.insert!(%Example{name: "replication", enabled: false})
+        example = Repo.update!(change(example, name: "more replication", enabled: true))
+        Repo.delete!(example)
+        example.id
       end)
 
     assert_receive {:live_sync,
