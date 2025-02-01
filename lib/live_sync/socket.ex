@@ -20,7 +20,6 @@ defmodule LiveSync.Socket do
         end
       end)
 
-    # handle inserts for any assigns that might be empty
     socket =
       socket.assigns
       |> Map.take(watch)

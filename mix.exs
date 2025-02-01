@@ -21,7 +21,6 @@ defmodule LiveSync.MixProject do
 
   def application do
     [
-      mod: {LiveSync.Application, []},
       extra_applications: [:logger, :runtime_tools]
     ]
   end

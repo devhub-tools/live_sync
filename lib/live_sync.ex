@@ -1,6 +1,26 @@
 defmodule LiveSync do
   @moduledoc false
+  use Supervisor
+
   import Phoenix.LiveView
+
+  def start_link(opts) do
+    Supervisor.start_link(__MODULE__, opts, name: __MODULE__)
+  end
+
+  @impl true
+  def init(opts) do
+    repo = Keyword.fetch!(opts, :repo)
+    otp_app = Keyword.fetch!(opts, :otp_app)
+
+    children = [
+      {Registry, name: LiveSync.Registry, keys: :duplicate},
+      {LiveSync.Replication, [name: LiveSync.Replication, otp_app: otp_app] ++ repo.config()},
+      {Task, fn -> LiveSync.Replication.wait_for_connection!(LiveSync.Replication) end}
+    ]
+
+    Supervisor.init(children, strategy: :one_for_one)
+  end
 
   defmacro __using__(opts) do
     quote do

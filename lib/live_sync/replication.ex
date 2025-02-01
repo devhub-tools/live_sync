@@ -6,7 +6,6 @@ defmodule LiveSync.Replication do
 
   require Logger
 
-  # TODO: Allow the publications to be passed as parameters
   def start_link(opts) do
     name = Keyword.get(opts, :name)
 
@@ -15,7 +14,7 @@ defmodule LiveSync.Replication do
     end
 
     opts = Keyword.put_new(opts, :auto_reconnect, true)
-    Postgrex.ReplicationConnection.start_link(__MODULE__, [], opts)
+    Postgrex.ReplicationConnection.start_link(__MODULE__, [otp_app: opts[:otp_app]], opts)
   end
 
   def subscribe(name) do
@@ -57,9 +56,8 @@ defmodule LiveSync.Replication do
   ## Callbacks
 
   @impl true
-  def init(_opts) do
-    # TODO: make devhub dynamic
-    path = Application.app_dir(:devhub, "ebin")
+  def init(opts) do
+    path = Application.app_dir(opts[:otp_app], "ebin")
 
     schemas =
       LiveSync.Sync
