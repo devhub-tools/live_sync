@@ -3,6 +3,7 @@ LiveSync.Endpoint.start_link()
 
 LiveSync.Repo.query!("DROP TABLE IF EXISTS ignored;")
 LiveSync.Repo.query!("DROP TABLE IF EXISTS examples;")
+LiveSync.Repo.query("DROP PUBLICATION live_sync;")
 
 LiveSync.Repo.query!("""
 CREATE TABLE examples (
@@ -23,7 +24,6 @@ CREATE TABLE ignored (
 );
 """)
 
-Ecto.Migration.Runner.run(LiveSync.Repo, LiveSync.Repo.config(), 1, LiveSync.Migration, :forward, :down, :down, [])
 Ecto.Migration.Runner.run(LiveSync.Repo, LiveSync.Repo.config(), 1, LiveSync.Migration, :forward, :up, :up, [])
 
 ExUnit.start(capture_log: true)
