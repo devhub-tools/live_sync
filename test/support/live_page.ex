@@ -22,6 +22,11 @@ defmodule LiveSync.LivePage do
     assign(socket, examples: updates)
   end
 
+  def sync(:data, value, socket) do
+    data = Repo.preload(value, [:parent, :children])
+    assign(socket, data: data)
+  end
+
   def render(assigns) do
     ~H"""
     <div :if={not is_nil(@data)} id="data">

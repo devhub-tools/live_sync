@@ -205,4 +205,51 @@ defmodule LiveSync.SocketTest do
     parsed_html = Floki.parse_document!(html)
     assert parsed_html |> Floki.find("#data-name") |> Floki.text() == "replication"
   end
+
+  test "can change belongs_to foreign key" do
+    parent = Repo.insert!(%Example{name: "parent", enabled: false})
+    other_parent = Repo.insert!(%Example{name: "other parent", enabled: false})
+    example = Repo.insert!(%Example{name: "replication", enabled: false, parent_id: parent.id})
+
+    {:ok, view, html} =
+      live_isolated(Phoenix.ConnTest.build_conn(), LiveSync.LivePage, session: %{"id" => example.id, "test" => self()})
+
+    parsed_html = Floki.parse_document!(html)
+    assert parsed_html |> Floki.find("#data-parent-name") |> Floki.text() == "parent"
+
+    Repo.update!(change(example, parent_id: other_parent.id))
+
+    assert_receive :synced
+    html = render(view)
+
+    parsed_html = Floki.parse_document!(html)
+    assert parsed_html |> Floki.find("#data-parent-name") |> Floki.text() == "other parent"
+  end
+
+  test "can change has_many foreign key" do
+    parent = Repo.insert!(%Example{name: "parent", enabled: false})
+    _child1 = Repo.insert!(%Example{name: "child1", enabled: false, parent_id: parent.id})
+    child2 = Repo.insert!(%Example{name: "child2", enabled: false, parent_id: parent.id})
+
+    {:ok, view, html} =
+      live_isolated(Phoenix.ConnTest.build_conn(), LiveSync.LivePage, session: %{"id" => parent.id, "test" => self()})
+
+    parsed_html = Floki.parse_document!(html)
+
+    assert [
+             {"p", [{"class", "data-child-name"}], ["child1"]},
+             {"p", [{"class", "data-child-name"}], ["child2"]}
+           ] == Floki.find(parsed_html, ".data-child-name")
+
+    Repo.update!(change(child2, parent_id: nil))
+
+    assert_receive :synced
+    html = render(view)
+
+    parsed_html = Floki.parse_document!(html)
+
+    assert [
+             {"p", [{"class", "data-child-name"}], ["child1"]}
+           ] == Floki.find(parsed_html, ".data-child-name")
+  end
 end

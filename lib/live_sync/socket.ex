@@ -1,4 +1,5 @@
 defmodule LiveSync.Socket do
+  alias Ecto.Association.Has
   alias Ecto.Association.NotLoaded
 
   def handle_info({:live_sync, records}, socket, opts) do
@@ -95,7 +96,6 @@ defmodule LiveSync.Socket do
       end)
       |> Map.new()
 
-    # TODO: handle fkey ids changing, maybe set to NotLoaded
     Map.merge(original, updated_fields)
   end
 
@@ -115,20 +115,28 @@ defmodule LiveSync.Socket do
     Enum.map(structs, fn struct -> traverse_associations(struct, inserts, updates) end)
   end
 
-  defp traverse_associations(%{__struct__: module} = struct, inserts, updates) do
-    lookup = LiveSync.lookup_info(struct)
-    struct = process_record(updates[lookup], struct)
+  defp traverse_associations(%{__struct__: module} = original, inserts, updates) do
+    lookup = LiveSync.lookup_info(original)
+    struct = process_record(updates[lookup], original)
 
     if struct != :delete and Kernel.function_exported?(module, :__schema__, 1) do
       :associations
       |> module.__schema__()
       |> Enum.map(&module.__schema__(:association, &1))
       |> Enum.reduce(struct, fn assoc, acc ->
+        struct =
+          if Map.get(struct, assoc.owner_key) == Map.get(original, assoc.owner_key) do
+            struct
+          else
+            Map.put(struct, assoc.field, %Ecto.Association.NotLoaded{})
+          end
+
         record =
           struct
           |> Map.get(assoc.field)
           |> traverse_associations(inserts, updates)
           |> maybe_add_to_association(struct, assoc, inserts)
+          |> maybe_remove_from_association(struct, assoc, updates)
 
         %{acc | assoc.field => record}
       end)
@@ -143,7 +151,7 @@ defmodule LiveSync.Socket do
 
   defp maybe_add_to_association(%Ecto.Association.NotLoaded{} = record, _parent, _assoc, _inserts), do: record
 
-  defp maybe_add_to_association(list, parent, %Ecto.Association.Has{cardinality: :many} = assoc, inserts) do
+  defp maybe_add_to_association(list, parent, %Has{cardinality: :many} = assoc, inserts) do
     existing = Enum.map(list, &LiveSync.lookup_info/1)
 
     relevant_inserts =
@@ -159,6 +167,22 @@ defmodule LiveSync.Socket do
   end
 
   defp maybe_add_to_association(record, _parent, _assoc, _inserts), do: record
+
+  defp maybe_remove_from_association(%Ecto.Association.NotLoaded{} = record, _parent, _assoc, _updates), do: record
+
+  defp maybe_remove_from_association(list, parent, %Has{cardinality: :many} = assoc, updates) do
+    records_to_remove =
+      updates
+      |> Enum.filter(fn {_lookup, {_op, update}} ->
+        update.__struct__ == assoc.related and
+          Map.get(update, assoc.related_key) != Map.get(parent, assoc.owner_key)
+      end)
+      |> Enum.map(fn {_lookup, {_op, update}} -> update.id end)
+
+    Enum.filter(list, &(&1.id not in records_to_remove))
+  end
+
+  defp maybe_remove_from_association(record, _parent, _assoc, _updates), do: record
 
   defp maybe_insert([head | _rest] = list, inserts) do
     existing = Enum.map(list, &LiveSync.lookup_info/1)
