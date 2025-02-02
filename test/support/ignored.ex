@@ -6,5 +6,8 @@ defmodule LiveSync.Ignored do
 
   schema "ignored" do
     field :name, :string
+    field :organization_id, :integer
+
+    belongs_to :example, LiveSync.Example, type: :binary_id, foreign_key: :example_id
   end
 end

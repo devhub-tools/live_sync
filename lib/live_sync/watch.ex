@@ -9,6 +9,10 @@ defprotocol LiveSync.Watch do
           id = Map.get(data, unquote(opts)[:id] || :id)
           {unquote(module), id}
         end
+
+        def subscription_key(data) do
+          Map.get(data, unquote(opts)[:subscription_key])
+        end
       end
     end
   end

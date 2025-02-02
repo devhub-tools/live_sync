@@ -1,24 +1,19 @@
 defmodule LiveSync.SocketTest do
-  use LiveSync.DataCase
-
-  import Phoenix.LiveViewTest
+  use LiveSync.ConnCase
 
   alias LiveSync.Example
   alias LiveSync.Ignored
   alias LiveSync.Repo
-
-  @endpoint LiveSync.Endpoint
 
   setup do
     LiveSync.start_link(repo: LiveSync.Repo, otp_app: :live_sync)
     :ok
   end
 
-  test "updates reflect in renders" do
-    example = Repo.insert!(%Example{name: "replication", enabled: false})
+  test "updates reflect in renders", %{conn: conn} do
+    example = Repo.insert!(%Example{organization_id: 1, name: "replication", enabled: false})
 
-    {:ok, view, html} =
-      live_isolated(Phoenix.ConnTest.build_conn(), LiveSync.LivePage, session: %{"id" => example.id, "test" => self()})
+    {:ok, view, html} = conn |> get("/#{example.id}") |> live()
 
     parsed_html = Floki.parse_document!(html)
     assert parsed_html |> Floki.find("#data-name") |> Floki.text() == "replication"
@@ -54,7 +49,7 @@ defmodule LiveSync.SocketTest do
            ] == Floki.find(parsed_html, "#examples > div")
 
     # add a record
-    another_example = Repo.insert!(%Example{name: "new replication", enabled: false})
+    another_example = Repo.insert!(%Example{organization_id: 1, name: "new replication", enabled: false})
 
     assert_receive :synced
     html = render(view)
@@ -128,7 +123,7 @@ defmodule LiveSync.SocketTest do
     assert [] == Floki.find(parsed_html, "#examples > div")
 
     # can insert into empty list
-    example = Repo.insert!(%Example{name: "replication", enabled: false})
+    example = Repo.insert!(%Example{organization_id: 1, name: "replication", enabled: false})
 
     assert_receive :synced
     html = render(view)
@@ -145,12 +140,11 @@ defmodule LiveSync.SocketTest do
            ] == Floki.find(parsed_html, "#examples > div")
   end
 
-  test "works with associations" do
-    parent = Repo.insert!(%Example{name: "parent", enabled: false})
-    example = Repo.insert!(%Example{name: "replication", enabled: false, parent_id: parent.id})
+  test "works with associations", %{conn: conn} do
+    parent = Repo.insert!(%Example{organization_id: 1, name: "parent", enabled: false})
+    example = Repo.insert!(%Example{organization_id: 1, name: "replication", enabled: false, parent_id: parent.id})
 
-    {:ok, view, html} =
-      live_isolated(Phoenix.ConnTest.build_conn(), LiveSync.LivePage, session: %{"id" => example.id, "test" => self()})
+    {:ok, view, html} = conn |> get("/#{example.id}") |> live()
 
     parsed_html = Floki.parse_document!(html)
     assert parsed_html |> Floki.find("#data-parent-name") |> Floki.text() == "parent"
@@ -164,8 +158,7 @@ defmodule LiveSync.SocketTest do
     assert parsed_html |> Floki.find("#data-parent-name") |> Floki.text() == "my parent"
 
     # load from parent and insert child
-    {:ok, view, html} =
-      live_isolated(Phoenix.ConnTest.build_conn(), LiveSync.LivePage, session: %{"id" => parent.id, "test" => self()})
+    {:ok, view, html} = conn |> get("/#{parent.id}") |> live()
 
     parsed_html = Floki.parse_document!(html)
 
@@ -173,7 +166,7 @@ defmodule LiveSync.SocketTest do
              {"p", [{"class", "data-child-name"}], ["replication"]}
            ] == Floki.find(parsed_html, ".data-child-name")
 
-    Repo.insert!(%Example{name: "child", enabled: false, parent_id: parent.id})
+    Repo.insert!(%Example{organization_id: 1, name: "child", enabled: false, parent_id: parent.id})
 
     assert_receive :synced
     html = render(view)
@@ -186,33 +179,34 @@ defmodule LiveSync.SocketTest do
            ] == Floki.find(parsed_html, ".data-child-name")
   end
 
-  test "ignores non-watched schemas" do
-    ignore = Repo.insert!(%Ignored{name: "ignore"})
+  test "ignores non-watched schemas", %{conn: conn} do
+    example = Repo.insert!(%Example{organization_id: 1, name: "replication", enabled: false})
+    ignore = Repo.insert!(%Ignored{organization_id: 1, name: "ignore", example_id: example.id})
 
-    example = Repo.insert!(%Example{name: "replication", enabled: false}, ignore_id: ignore.id)
-
-    {:ok, view, html} =
-      live_isolated(Phoenix.ConnTest.build_conn(), LiveSync.LivePage, session: %{"id" => example.id, "test" => self()})
+    {:ok, view, html} = conn |> get("/#{example.id}") |> live()
 
     parsed_html = Floki.parse_document!(html)
     assert parsed_html |> Floki.find("#data-name") |> Floki.text() == "replication"
+    assert parsed_html |> Floki.find(".data-ignored-name") |> Floki.text() == "ignore"
 
     _ignore = Repo.update!(change(ignore, name: "still ignored"))
-
     refute_receive :synced
+
+    _ignore = Repo.update!(change(example, name: "not ignored"))
+    assert_receive :synced
 
     html = render(view)
     parsed_html = Floki.parse_document!(html)
-    assert parsed_html |> Floki.find("#data-name") |> Floki.text() == "replication"
+    assert parsed_html |> Floki.find("#data-name") |> Floki.text() == "not ignored"
+    assert parsed_html |> Floki.find(".data-ignored-name") |> Floki.text() == "ignore"
   end
 
-  test "can change belongs_to foreign key" do
-    parent = Repo.insert!(%Example{name: "parent", enabled: false})
-    other_parent = Repo.insert!(%Example{name: "other parent", enabled: false})
-    example = Repo.insert!(%Example{name: "replication", enabled: false, parent_id: parent.id})
+  test "can change belongs_to foreign key", %{conn: conn} do
+    parent = Repo.insert!(%Example{organization_id: 1, name: "parent", enabled: false})
+    other_parent = Repo.insert!(%Example{organization_id: 1, name: "other parent", enabled: false})
+    example = Repo.insert!(%Example{organization_id: 1, name: "replication", enabled: false, parent_id: parent.id})
 
-    {:ok, view, html} =
-      live_isolated(Phoenix.ConnTest.build_conn(), LiveSync.LivePage, session: %{"id" => example.id, "test" => self()})
+    {:ok, view, html} = conn |> get("/#{example.id}") |> live()
 
     parsed_html = Floki.parse_document!(html)
     assert parsed_html |> Floki.find("#data-parent-name") |> Floki.text() == "parent"
@@ -226,13 +220,12 @@ defmodule LiveSync.SocketTest do
     assert parsed_html |> Floki.find("#data-parent-name") |> Floki.text() == "other parent"
   end
 
-  test "can change has_many foreign key" do
-    parent = Repo.insert!(%Example{name: "parent", enabled: false})
-    _child1 = Repo.insert!(%Example{name: "child1", enabled: false, parent_id: parent.id})
-    child2 = Repo.insert!(%Example{name: "child2", enabled: false, parent_id: parent.id})
+  test "can change has_many foreign key", %{conn: conn} do
+    parent = Repo.insert!(%Example{organization_id: 1, name: "parent", enabled: false})
+    _child1 = Repo.insert!(%Example{organization_id: 1, name: "child1", enabled: false, parent_id: parent.id})
+    child2 = Repo.insert!(%Example{organization_id: 1, name: "child2", enabled: false, parent_id: parent.id})
 
-    {:ok, view, html} =
-      live_isolated(Phoenix.ConnTest.build_conn(), LiveSync.LivePage, session: %{"id" => parent.id, "test" => self()})
+    {:ok, view, html} = conn |> get("/#{parent.id}") |> live()
 
     parsed_html = Floki.parse_document!(html)
 

@@ -1,11 +1,14 @@
 # LiveSync
 
-**TODO: Add description**
+![coverbot](https://img.shields.io/endpoint?url=https://private.devhub.tools/coverbot/v1/devhub-tools/live_sync/main/badge.json)
+[![Hex.pm](https://img.shields.io/hexpm/v/live_sync.svg)](https://hex.pm/packages/live_sync)
+[![Documentation](https://img.shields.io/badge/documentation-gray)](https://hexdocs.pm/live_sync)
+
+LiveSync allows automatic updating of LiveView assigns by utilizing postgres replication.
 
 ## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `live_sync` to your list of dependencies in `mix.exs`:
+Add `live_sync` to the list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
@@ -14,7 +17,3 @@ def deps do
   ]
 end
 ```
-
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/live_sync>.

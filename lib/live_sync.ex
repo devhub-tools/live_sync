@@ -41,17 +41,21 @@ defmodule LiveSync do
   end
 
   def on_mount(opts, _params, _session, socket) do
-    if connected?(socket) do
-      # TODO: customizable key to restrict for multitenancy
-      LiveSync.Replication.subscribe("live_sync")
+    socket =
+      socket
+      |> attach_hook(:live_sync, :handle_params, fn _params, _uri, socket ->
+        if connected?(socket) do
+          subscription_key = socket.assigns[opts[:subscription_key]]
+          LiveSync.Replication.subscribe("live_sync:#{subscription_key}")
+        end
 
-      {:cont,
-       attach_hook(socket, :sync, :handle_info, fn msg, socket ->
-         LiveSync.Socket.handle_info(msg, socket, opts)
-       end)}
-    else
-      {:cont, socket}
-    end
+        {:cont, socket}
+      end)
+      |> attach_hook(:sync, :handle_info, fn msg, socket ->
+        LiveSync.Socket.handle_info(msg, socket, opts)
+      end)
+
+    {:cont, socket}
   end
 
   def opts(module) do
@@ -59,7 +63,14 @@ defmodule LiveSync do
   end
 
   def lookup_info(struct) do
+    case LiveSync.Watch.impl_for(struct) do
+      nil -> nil
+      impl -> impl.info(struct)
+    end
+  end
+
+  def subscription_key(struct) do
     impl = LiveSync.Watch.impl_for(struct)
-    impl.info(struct)
+    impl.subscription_key(struct)
   end
 end

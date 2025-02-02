@@ -107,7 +107,7 @@ defmodule LiveSync.Socket do
     original
   end
 
-  defp traverse_associations(%Ecto.Association.NotLoaded{} = struct, _inserts, _updates) do
+  defp traverse_associations(%NotLoaded{} = struct, _inserts, _updates) do
     struct
   end
 
@@ -116,8 +116,11 @@ defmodule LiveSync.Socket do
   end
 
   defp traverse_associations(%{__struct__: module} = original, inserts, updates) do
-    lookup = LiveSync.lookup_info(original)
-    struct = process_record(updates[lookup], original)
+    struct =
+      case LiveSync.lookup_info(original) do
+        nil -> original
+        lookup -> process_record(updates[lookup], original)
+      end
 
     if struct != :delete and Kernel.function_exported?(module, :__schema__, 1) do
       :associations
@@ -128,7 +131,7 @@ defmodule LiveSync.Socket do
           if Map.get(struct, assoc.owner_key) == Map.get(original, assoc.owner_key) do
             struct
           else
-            Map.put(struct, assoc.field, %Ecto.Association.NotLoaded{})
+            Map.put(struct, assoc.field, %NotLoaded{})
           end
 
         record =
@@ -149,7 +152,7 @@ defmodule LiveSync.Socket do
     value
   end
 
-  defp maybe_add_to_association(%Ecto.Association.NotLoaded{} = record, _parent, _assoc, _inserts), do: record
+  defp maybe_add_to_association(%NotLoaded{} = record, _parent, _assoc, _inserts), do: record
 
   defp maybe_add_to_association(list, parent, %Has{cardinality: :many} = assoc, inserts) do
     existing = Enum.map(list, &LiveSync.lookup_info/1)
@@ -168,7 +171,7 @@ defmodule LiveSync.Socket do
 
   defp maybe_add_to_association(record, _parent, _assoc, _inserts), do: record
 
-  defp maybe_remove_from_association(%Ecto.Association.NotLoaded{} = record, _parent, _assoc, _updates), do: record
+  defp maybe_remove_from_association(%NotLoaded{} = record, _parent, _assoc, _updates), do: record
 
   defp maybe_remove_from_association(list, parent, %Has{cardinality: :many} = assoc, updates) do
     records_to_remove =

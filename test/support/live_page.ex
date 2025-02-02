@@ -3,6 +3,7 @@ defmodule LiveSync.LivePage do
   use Phoenix.LiveView
 
   use LiveSync,
+    subscription_key: :organization_id,
     watch: [
       :data,
       examples: [schema: LiveSync.Example]
@@ -10,10 +11,9 @@ defmodule LiveSync.LivePage do
 
   alias LiveSync.Repo
 
-  def mount(_params, %{"id" => id} = session, socket) do
-    send(session["test"], :ok)
-    data = LiveSync.Example |> Repo.get!(id) |> Repo.preload([:parent, :children])
-    {:ok, assign(socket, examples: [data], data: data, test: session["test"])}
+  def mount(%{"id" => id}, session, socket) do
+    data = LiveSync.Example |> Repo.get!(id) |> Repo.preload([:parent, :children, :ignored])
+    {:ok, assign(socket, organization_id: 1, examples: [data], data: data, test: session["test"])}
   end
 
   def sync(:examples, updated, socket) do
@@ -35,6 +35,7 @@ defmodule LiveSync.LivePage do
       <p id="data-enabled">{@data.enabled}</p>
       <p :if={not is_nil(@data.parent)} id="data-parent-name">{@data.parent.name}</p>
       <p :for={child <- @data.children} class="data-child-name">{child.name}</p>
+      <p :for={ignored <- @data.ignored} class="data-ignored-name">{ignored.name}</p>
     </div>
     <div id="examples">
       <div :for={example <- @examples}>

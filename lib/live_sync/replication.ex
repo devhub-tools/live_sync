@@ -202,47 +202,56 @@ defmodule LiveSync.Replication do
   end
 
   defp handle_commit(_lsn, state) do
-    data =
-      state.replication
-      |> Enum.filter(fn data -> Map.has_key?(state.schemas, data.table) end)
-      |> Enum.map(fn %{data: data, table: table, op: op} ->
-        %{module: module, fields: fields} = state.schemas[table]
+    state.replication
+    |> Enum.filter(fn data -> Map.has_key?(state.schemas, data.table) end)
+    |> Enum.map(fn %{data: data, table: table, op: op} ->
+      %{module: module, fields: fields} = state.schemas[table]
 
-        data =
-          data
-          |> Map.take(Map.keys(fields))
-          |> Map.new(fn {k, v} ->
-            field = String.to_existing_atom(k)
+      data =
+        data
+        |> Map.take(Map.keys(fields))
+        |> Map.new(fn {k, v} ->
+          field = String.to_existing_atom(k)
 
-            value =
-              case {fields[k], v} do
-                {_type, nil} ->
-                  nil
+          value =
+            case {fields[k], v} do
+              {_type, nil} ->
+                nil
 
-                {:boolean, _v} ->
-                  v == "t"
+              {:boolean, _v} ->
+                v == "t"
 
-                {:binary_id, _v} ->
-                  <<"\\x", a1, a2, a3, a4, a5, a6, a7, a8, b1, b2, b3, b4, c1, c2, c3, c4, d1, d2, d3, d4, e1, e2, e3, e4,
-                    e5, e6, e7, e8, e9, e10, e11, e12>> = v
+              {:binary_id, _v} ->
+                <<"\\x", a1, a2, a3, a4, a5, a6, a7, a8, b1, b2, b3, b4, c1, c2, c3, c4, d1, d2, d3, d4, e1, e2, e3, e4,
+                  e5, e6, e7, e8, e9, e10, e11, e12>> = v
 
-                  <<a1, a2, a3, a4, a5, a6, a7, a8, ?-, b1, b2, b3, b4, ?-, c1, c2, c3, c4, ?-, d1, d2, d3, d4, ?-, e1,
-                    e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12>>
+                <<a1, a2, a3, a4, a5, a6, a7, a8, ?-, b1, b2, b3, b4, ?-, c1, c2, c3, c4, ?-, d1, d2, d3, d4, ?-, e1, e2,
+                  e3, e4, e5, e6, e7, e8, e9, e10, e11, e12>>
 
-                # TODO: handle errors
-                {type, _v} ->
-                  Ecto.Type.cast!(type, v)
-              end
+              {type, _v} ->
+                Ecto.Type.cast!(type, v)
+            end
 
-            {field, value}
-          end)
+          {field, value}
+        end)
 
-        struct = Ecto.Schema.Loader.load_struct(module, nil, table)
-        {op, Map.merge(struct, data)}
-      end)
+      struct = Ecto.Schema.Loader.load_struct(module, nil, table)
+      {op, Map.merge(struct, data)}
+    end)
+    |> Enum.group_by(fn {op, struct} -> {LiveSync.subscription_key(struct), op == :delete} end)
+    |> Enum.each(fn
+      {{subscription_key, false}, data} ->
+        Registry.dispatch(LiveSync.Registry, "live_sync:#{subscription_key}", fn subscribed ->
+          for {pid, _opts} <- subscribed, do: send(pid, {:live_sync, data})
+        end)
 
-    Registry.dispatch(LiveSync.Registry, "live_sync", fn subscribed ->
-      for {pid, _opts} <- subscribed, do: send(pid, {:live_sync, data})
+      # send deletes to all subscribers as only ids are returned
+      {{_subscription_key, true}, data} ->
+        LiveSync.Registry
+        |> Registry.select([{{:"$1", :"$2", :"$3"}, [], [{{:"$1", :"$2", :"$3"}}]}])
+        |> Enum.each(fn {_key, pid, _opts} ->
+          send(pid, {:live_sync, data})
+        end)
     end)
 
     {:noreply, %{state | replication: :connected}}

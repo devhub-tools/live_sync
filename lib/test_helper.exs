@@ -1,23 +1,25 @@
 LiveSync.Repo.start_link()
 LiveSync.Endpoint.start_link()
 
-LiveSync.Repo.query!("DROP TABLE IF EXISTS examples;")
 LiveSync.Repo.query!("DROP TABLE IF EXISTS ignored;")
+LiveSync.Repo.query!("DROP TABLE IF EXISTS examples;")
 
 LiveSync.Repo.query!("""
-CREATE TABLE ignored (
-   id bytea PRIMARY KEY,
-   name text
+CREATE TABLE examples (
+  id bytea PRIMARY KEY,
+  name text,
+  enabled boolean,
+  parent_id bytea REFERENCES examples(id),
+  organization_id integer
 );
 """)
 
 LiveSync.Repo.query!("""
-CREATE TABLE examples (
-   id bytea PRIMARY KEY,
-   name text,
-   enabled boolean,
-   parent_id bytea REFERENCES examples(id),
-   ignored_id bytea REFERENCES ignored(id)
+CREATE TABLE ignored (
+  id bytea PRIMARY KEY,
+  name text,
+  example_id bytea REFERENCES examples(id),
+  organization_id integer
 );
 """)
 
