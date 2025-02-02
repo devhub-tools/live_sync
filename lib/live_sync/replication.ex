@@ -11,7 +11,9 @@ defmodule LiveSync.Replication do
   end
 
   def subscribe(name) do
-    Registry.register(LiveSync.Registry, name, [])
+    if Process.whereis(LiveSync.Registry) do
+      Registry.register(LiveSync.Registry, name, [])
+    end
   end
 
   @doc """
@@ -148,7 +150,7 @@ defmodule LiveSync.Replication do
         handle_tuple_data(:update, oid, count, tuple_data, state)
 
       <<?U, oid::32, _action, _rest::binary>> when is_list(state.replication) ->
-        %{^oid => {schema, table, _columns}} = state.relation
+        %{^oid => {schema, table, _columns}} = state.relations
 
         Logger.error(
           "A primary key of a row has been changed or its replica identity has been set to full, " <>

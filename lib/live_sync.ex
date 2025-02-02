@@ -4,6 +4,14 @@ defmodule LiveSync do
 
   ## Installation
 
+  This project builds on top of PostgreSQL replication and it requires PostgreSQL 14+. You must also enable replication in your PostgreSQL instance:
+
+      ALTER SYSTEM SET wal_level='logical';
+      ALTER SYSTEM SET max_wal_senders='64';
+      ALTER SYSTEM SET max_replication_slots='64';
+
+  Then **you MUST restart your database**.
+
   Add `live_sync` to the list of dependencies in `mix.exs`:
 
             def deps do
@@ -107,6 +115,8 @@ defmodule LiveSync do
 
   import Phoenix.LiveView
 
+  require Logger
+
   def start_link(opts) do
     Supervisor.start_link(__MODULE__, opts, name: __MODULE__)
   end
@@ -116,11 +126,28 @@ defmodule LiveSync do
     repo = Keyword.fetch!(opts, :repo)
     otp_app = Keyword.fetch!(opts, :otp_app)
 
-    children = [
-      {Registry, name: LiveSync.Registry, keys: :duplicate},
-      {LiveSync.Replication, [name: LiveSync.Replication, otp_app: otp_app] ++ repo.config()},
-      {Task, fn -> LiveSync.Replication.wait_for_connection!(LiveSync.Replication) end}
-    ]
+    children =
+      case repo.query!("show wal_level;") do
+        %Postgrex.Result{command: :show, columns: ["wal_level"], rows: [["logical"]]} ->
+          [
+            {Registry, name: LiveSync.Registry, keys: :duplicate},
+            {LiveSync.Replication, [name: LiveSync.Replication, otp_app: otp_app] ++ repo.config()},
+            {Task, fn -> LiveSync.Replication.wait_for_connection!(LiveSync.Replication) end}
+          ]
+
+        _not_setup ->
+          Logger.error("""
+          Postgres replication not enabled, not starting LiveSync.
+
+          To enable replication, run the following commands and restart your database.
+
+          ALTER SYSTEM SET wal_level='logical';
+          ALTER SYSTEM SET max_wal_senders='64';
+          ALTER SYSTEM SET max_replication_slots='64';
+          """)
+
+          []
+      end
 
     Supervisor.init(children, strategy: :one_for_one)
   end

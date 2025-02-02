@@ -8,6 +8,16 @@ LiveSync allows automatic updating of LiveView assigns by utilizing postgres rep
 
 ## Installation
 
+This project builds on top of PostgreSQL replication and it requires PostgreSQL 14+. You must also enable replication in your PostgreSQL instance:
+
+```sql
+ALTER SYSTEM SET wal_level='logical';
+ALTER SYSTEM SET max_wal_senders='64';
+ALTER SYSTEM SET max_replication_slots='64';
+```
+
+Then **you must restart your database**.
+
 Add `live_sync` to the list of dependencies in `mix.exs`:
 
   ```elixir
