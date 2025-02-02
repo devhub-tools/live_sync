@@ -28,7 +28,8 @@ Add `live_sync` to the list of dependencies in `mix.exs`:
   end
   ```
 
-Add a migration to setup replication:
+Add a migration to setup replication (requires superuser permissions to subscribe to all tables):
+
 
   ```elixir
   defmodule MyApp.Repo.Migrations.SetupLiveSync do
@@ -36,6 +37,8 @@ Add a migration to setup replication:
 
     def up do
       LiveSync.Migration.up()
+      # If you don't have superuser you can pass specific tables
+      # LiveSync.Migration.up(["table1", "table2"])
     end
 
     def down do
