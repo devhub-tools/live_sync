@@ -14,10 +14,8 @@ defmodule LiveSync.Socket do
       records
       |> Enum.filter(&(elem(&1, 0) == :insert))
       |> Enum.reduce([], fn {_op, record}, acc ->
-        case LiveSync.lookup_info(record) do
-          nil -> acc
-          lookup -> [{lookup, record} | acc]
-        end
+        lookup = LiveSync.lookup_info(record)
+        [{lookup, record} | acc]
       end)
 
     socket =
@@ -37,10 +35,8 @@ defmodule LiveSync.Socket do
       records
       |> Enum.reject(&(elem(&1, 0) == :insert))
       |> Enum.reduce([], fn {op, record}, acc ->
-        case LiveSync.lookup_info(record) do
-          nil -> acc
-          lookup -> [{lookup, {op, record}} | acc]
-        end
+        lookup = LiveSync.lookup_info(record)
+        [{lookup, {op, record}} | acc]
       end)
       |> Map.new()
 
@@ -120,11 +116,8 @@ defmodule LiveSync.Socket do
   end
 
   defp traverse_associations(%{__struct__: module} = struct, inserts, updates) do
-    struct =
-      case LiveSync.lookup_info(struct) do
-        nil -> struct
-        lookup -> process_record(updates[lookup], struct)
-      end
+    lookup = LiveSync.lookup_info(struct)
+    struct = process_record(updates[lookup], struct)
 
     if struct != :delete and Kernel.function_exported?(module, :__schema__, 1) do
       :associations

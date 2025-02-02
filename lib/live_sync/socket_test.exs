@@ -4,6 +4,7 @@ defmodule LiveSync.SocketTest do
   import Phoenix.LiveViewTest
 
   alias LiveSync.Example
+  alias LiveSync.Ignored
   alias LiveSync.Repo
 
   @endpoint LiveSync.Endpoint
@@ -142,5 +143,66 @@ defmodule LiveSync.SocketTest do
                 {"p", [{"class", "example-enabled"}], ["false"]}
               ]}
            ] == Floki.find(parsed_html, "#examples > div")
+  end
+
+  test "works with associations" do
+    parent = Repo.insert!(%Example{name: "parent", enabled: false})
+    example = Repo.insert!(%Example{name: "replication", enabled: false, parent_id: parent.id})
+
+    {:ok, view, html} =
+      live_isolated(Phoenix.ConnTest.build_conn(), LiveSync.LivePage, session: %{"id" => example.id, "test" => self()})
+
+    parsed_html = Floki.parse_document!(html)
+    assert parsed_html |> Floki.find("#data-parent-name") |> Floki.text() == "parent"
+
+    parent = Repo.update!(change(parent, name: "my parent"))
+
+    assert_receive :synced
+    html = render(view)
+
+    parsed_html = Floki.parse_document!(html)
+    assert parsed_html |> Floki.find("#data-parent-name") |> Floki.text() == "my parent"
+
+    # load from parent and insert child
+    {:ok, view, html} =
+      live_isolated(Phoenix.ConnTest.build_conn(), LiveSync.LivePage, session: %{"id" => parent.id, "test" => self()})
+
+    parsed_html = Floki.parse_document!(html)
+
+    assert [
+             {"p", [{"class", "data-child-name"}], ["replication"]}
+           ] == Floki.find(parsed_html, ".data-child-name")
+
+    Repo.insert!(%Example{name: "child", enabled: false, parent_id: parent.id})
+
+    assert_receive :synced
+    html = render(view)
+
+    parsed_html = Floki.parse_document!(html)
+
+    assert [
+             {"p", [{"class", "data-child-name"}], ["child"]},
+             {"p", [{"class", "data-child-name"}], ["replication"]}
+           ] == Floki.find(parsed_html, ".data-child-name")
+  end
+
+  test "ignores non-watched schemas" do
+    ignore = Repo.insert!(%Ignored{name: "ignore"})
+
+    example = Repo.insert!(%Example{name: "replication", enabled: false}, ignore_id: ignore.id)
+
+    {:ok, view, html} =
+      live_isolated(Phoenix.ConnTest.build_conn(), LiveSync.LivePage, session: %{"id" => example.id, "test" => self()})
+
+    parsed_html = Floki.parse_document!(html)
+    assert parsed_html |> Floki.find("#data-name") |> Floki.text() == "replication"
+
+    _ignore = Repo.update!(change(ignore, name: "still ignored"))
+
+    refute_receive :synced
+
+    html = render(view)
+    parsed_html = Floki.parse_document!(html)
+    assert parsed_html |> Floki.find("#data-name") |> Floki.text() == "replication"
   end
 end

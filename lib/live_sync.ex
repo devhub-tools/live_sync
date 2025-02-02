@@ -59,9 +59,7 @@ defmodule LiveSync do
   end
 
   def lookup_info(struct) do
-    case LiveSync.Watch.impl_for(struct) do
-      nil -> nil
-      impl -> impl.info(struct)
-    end
+    impl = LiveSync.Watch.impl_for(struct)
+    impl.info(struct)
   end
 end

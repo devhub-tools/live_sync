@@ -9,5 +9,9 @@ defmodule LiveSync.Example do
   schema "examples" do
     field :name, :string
     field :enabled, :boolean, default: true
+
+    belongs_to :ignored, LiveSync.Example, type: :binary_id, foreign_key: :ignored_id
+    belongs_to :parent, LiveSync.Example, type: :binary_id, foreign_key: :parent_id
+    has_many :children, LiveSync.Example, foreign_key: :parent_id
   end
 end

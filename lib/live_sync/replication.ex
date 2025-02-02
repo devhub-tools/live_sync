@@ -215,11 +215,14 @@ defmodule LiveSync.Replication do
             field = String.to_existing_atom(k)
 
             value =
-              case fields[k] do
-                :boolean ->
+              case {fields[k], v} do
+                {_type, nil} ->
+                  nil
+
+                {:boolean, _v} ->
                   v == "t"
 
-                :binary_id ->
+                {:binary_id, _v} ->
                   <<"\\x", a1, a2, a3, a4, a5, a6, a7, a8, b1, b2, b3, b4, c1, c2, c3, c4, d1, d2, d3, d4, e1, e2, e3, e4,
                     e5, e6, e7, e8, e9, e10, e11, e12>> = v
 
@@ -227,7 +230,7 @@ defmodule LiveSync.Replication do
                     e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12>>
 
                 # TODO: handle errors
-                type ->
+                {type, _v} ->
                   Ecto.Type.cast!(type, v)
               end
 
