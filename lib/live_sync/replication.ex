@@ -1,7 +1,6 @@
+# Most of this code was sourced from https://github.com/josevalim/sync.
 defmodule LiveSync.Replication do
-  @moduledoc """
-  Most of this code was sourced from https://github.com/josevalim/sync.
-  """
+  @moduledoc false
   use Postgrex.ReplicationConnection
 
   require Logger
@@ -33,7 +32,7 @@ defmodule LiveSync.Replication do
       :ok ->
         :ok
 
-      {:DOWN, ^ref, _, _, reason} ->
+      {:DOWN, ^ref, _type, _pid, reason} ->
         exit({reason, {__MODULE__, :wait_for_connection!, [name, timeout]}})
     after
       timeout -> :timeout
@@ -77,7 +76,7 @@ defmodule LiveSync.Replication do
     waiting =
       case replication do
         {:disconnected, waiting} -> waiting
-        _ -> []
+        _replication -> []
       end
 
     {:noreply, %{state | replication: {:disconnected, waiting}}}
@@ -96,7 +95,7 @@ defmodule LiveSync.Replication do
       {:disconnected, waiting} ->
         {:noreply, %{state | replication: {:disconnected, [ref | waiting]}}}
 
-      _ ->
+      _replication ->
         send(ref, :ok)
         {:noreply, state}
     end
@@ -148,7 +147,7 @@ defmodule LiveSync.Replication do
       <<?U, oid::32, ?N, count::16, tuple_data::binary>> when is_list(state.replication) ->
         handle_tuple_data(:update, oid, count, tuple_data, state)
 
-      <<?U, oid::32, _, _::binary>> when is_list(state.replication) ->
+      <<?U, oid::32, _action, _rest::binary>> when is_list(state.replication) ->
         %{^oid => {schema, table, _columns}} = state.relation
 
         Logger.error(

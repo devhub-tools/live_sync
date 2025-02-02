@@ -1,4 +1,5 @@
 defmodule LiveSync.Socket do
+  @moduledoc false
   alias Ecto.Association.Has
   alias Ecto.Association.NotLoaded
 
@@ -92,7 +93,7 @@ defmodule LiveSync.Socket do
       |> Map.from_struct()
       |> Enum.filter(fn
         {_field, %NotLoaded{}} -> false
-        _ -> true
+        _field -> true
       end)
       |> Map.new()
 
