@@ -20,7 +20,19 @@ jobs:
     name: Tests
     runs-on: ubuntu-latest
 
+    services:
+      db:
+        image: postgres:17-alpine
+        ports: ['5432:5432']
+        env:
+          POSTGRES_PASSWORD: postgres
+
     steps:
+      - name: Set postgres settings
+        run: |
+          docker exec ${{ job.services.db.id }} sh -c 'echo "wal_level=logical" >> /var/lib/postgresql/data/postgresql.conf'
+          docker restart ${{ job.services.db.id }}
+
       - uses: actions/checkout@v4
 
       - uses: erlef/setup-beam@v1
@@ -45,12 +57,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-build-
 
-      - run: mix do deps.get, compile --warnings-as-errors
+      - run: mix do deps.get, compile --warnings-as-errors, ecto.create
       - run: mix coveralls.json
 
       - name: Check Code Coverage
         uses: devhub-tools/coverbot-action@v1
         with:
+          domain: private.devhub.tools
           format: elixir
           file: cover/excoveralls.json
           devhub_api_key: ${{ secrets.DEVHUB_API_KEY }}
