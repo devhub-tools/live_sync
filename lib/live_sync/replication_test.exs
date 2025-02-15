@@ -2,6 +2,8 @@ defmodule LiveSync.ReplicationTest do
   use LiveSync.DataCase
 
   alias LiveSync.Example
+  alias LiveSync.Example.EmbedMany
+  alias LiveSync.Example.EmbedOne
   alias LiveSync.Replication
   alias LiveSync.Repo
 
@@ -17,8 +19,18 @@ defmodule LiveSync.ReplicationTest do
 
     {:ok, id} =
       Repo.transaction(fn ->
-        example = Repo.insert!(%Example{organization_id: 1, name: "replication", enabled: false})
-        example = Repo.update!(change(example, name: "more replication", enabled: true))
+        example =
+          %{
+            organization_id: 1,
+            name: "replication",
+            enabled: false,
+            embed_one: %{name: "one"},
+            embed_many: [%{name: "many"}]
+          }
+          |> Example.changeset()
+          |> Repo.insert!()
+
+        example = Repo.update!(change(example, name: "more replication", enabled: true, embed_one: %{name: "embed"}))
         Repo.delete!(example)
         example.id
       end)
@@ -30,8 +42,20 @@ defmodule LiveSync.ReplicationTest do
 
     assert_receive {:live_sync,
                     [
-                      update: %LiveSync.Example{id: update_id, name: "more replication", enabled: true},
-                      insert: %LiveSync.Example{id: insert_id, name: "replication", enabled: false}
+                      update: %LiveSync.Example{
+                        id: update_id,
+                        name: "more replication",
+                        enabled: true,
+                        embed_one: %EmbedOne{name: "embed"},
+                        embed_many: [%EmbedMany{name: "many"}]
+                      },
+                      insert: %LiveSync.Example{
+                        id: insert_id,
+                        name: "replication",
+                        enabled: false,
+                        embed_one: %EmbedOne{name: "one"},
+                        embed_many: [%EmbedMany{name: "many"}]
+                      }
                     ]}
 
     assert id == insert_id
