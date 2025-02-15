@@ -11,7 +11,9 @@ CREATE TABLE examples (
   name text,
   enabled boolean,
   parent_id bytea REFERENCES examples(id),
-  organization_id integer
+  organization_id integer,
+  embed_one jsonb,
+  embed_many jsonb
 );
 """)
 

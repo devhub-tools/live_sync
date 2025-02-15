@@ -212,28 +212,7 @@ defmodule LiveSync.Replication do
         data
         |> Map.take(Map.keys(fields))
         |> Map.new(fn {k, v} ->
-          field = String.to_existing_atom(k)
-
-          value =
-            case {fields[k], v} do
-              {_type, nil} ->
-                nil
-
-              {:boolean, _v} ->
-                v == "t"
-
-              {:binary_id, _v} ->
-                <<"\\x", a1, a2, a3, a4, a5, a6, a7, a8, b1, b2, b3, b4, c1, c2, c3, c4, d1, d2, d3, d4, e1, e2, e3, e4,
-                  e5, e6, e7, e8, e9, e10, e11, e12>> = v
-
-                <<a1, a2, a3, a4, a5, a6, a7, a8, ?-, b1, b2, b3, b4, ?-, c1, c2, c3, c4, ?-, d1, d2, d3, d4, ?-, e1, e2,
-                  e3, e4, e5, e6, e7, e8, e9, e10, e11, e12>>
-
-              {type, _v} ->
-                Ecto.Type.cast!(type, v)
-            end
-
-          {field, value}
+          {String.to_existing_atom(k), cast_value(fields[k], v)}
         end)
 
       struct = Ecto.Schema.Loader.load_struct(module, nil, table)
@@ -287,6 +266,34 @@ defmodule LiveSync.Replication do
   end
 
   ## Helpers
+
+  defp cast_value(_type, nil) do
+    nil
+  end
+
+  defp cast_value(:boolean, value) do
+    value == "t"
+  end
+
+  defp cast_value(:binary_id, value) do
+    <<"\\x", a1, a2, a3, a4, a5, a6, a7, a8, b1, b2, b3, b4, c1, c2, c3, c4, d1, d2, d3, d4, e1, e2, e3, e4, e5, e6, e7,
+      e8, e9, e10, e11, e12>> = value
+
+    <<a1, a2, a3, a4, a5, a6, a7, a8, ?-, b1, b2, b3, b4, ?-, c1, c2, c3, c4, ?-, d1, d2, d3, d4, ?-, e1, e2, e3, e4, e5,
+      e6, e7, e8, e9, e10, e11, e12>>
+  end
+
+  defp cast_value({:parameterized, {Ecto.Embedded, %Ecto.Embedded{cardinality: :one} = type}}, value) do
+    Ecto.embedded_load(type.related, Jason.decode!(value), :json)
+  end
+
+  defp cast_value({:parameterized, {Ecto.Embedded, %Ecto.Embedded{cardinality: :many} = type}}, value) do
+    value |> Jason.decode!() |> Enum.map(&Ecto.embedded_load(type.related, &1, :json))
+  end
+
+  defp cast_value(type, value) do
+    Ecto.Type.cast!(type, value)
+  end
 
   @epoch DateTime.to_unix(~U[2000-01-01 00:00:00Z], :microsecond)
   defp current_time, do: System.os_time(:microsecond) - @epoch
