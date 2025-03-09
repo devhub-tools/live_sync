@@ -24,6 +24,7 @@ defmodule LiveSync.ReplicationTest do
             organization_id: 1,
             name: "replication",
             enabled: false,
+            input: %{"key" => "value"},
             embed_one: %{name: "one"},
             embed_many: [%{name: "many"}]
           }
@@ -46,6 +47,7 @@ defmodule LiveSync.ReplicationTest do
                         id: update_id,
                         name: "more replication",
                         enabled: true,
+                        input: %{"key" => "value"},
                         embed_one: %EmbedOne{name: "embed"},
                         embed_many: [%EmbedMany{name: "many"}]
                       },
@@ -53,6 +55,7 @@ defmodule LiveSync.ReplicationTest do
                         id: insert_id,
                         name: "replication",
                         enabled: false,
+                        input: %{"key" => "value"},
                         embed_one: %EmbedOne{name: "one"},
                         embed_many: [%EmbedMany{name: "many"}]
                       }
