@@ -279,6 +279,14 @@ defmodule LiveSync.Replication do
     Jason.decode!(value)
   end
 
+  defp load_value({:array, type}, value) do
+    value
+    |> String.replace_leading("{", "")
+    |> String.replace_trailing("}", "")
+    |> String.split(",")
+    |> Enum.map(&load_value(type, &1))
+  end
+
   defp load_value(:binary_id, "\\x" <> value) do
     value |> :binary.decode_hex() |> Ecto.UUID.load!()
   end
