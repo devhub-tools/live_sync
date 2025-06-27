@@ -183,7 +183,7 @@ defmodule LiveSync.Socket do
       end)
       |> Enum.map(fn {_lookup, {_op, update}} -> update.id end)
 
-    Enum.filter(list, &(&1.id not in records_to_remove))
+    Enum.filter(list, &(is_map(&1) && &1.id not in records_to_remove))
   end
 
   defp maybe_remove_from_association(record, _parent, _assoc, _updates), do: record
