@@ -29,7 +29,7 @@ defmodule LiveSync.Socket do
         if old_value == new_value do
           socket_acc
         else
-          socket_acc.view.sync(key, new_value, socket_acc)
+          sync(socket_acc, key, new_value, records)
         end
       end)
 
@@ -51,7 +51,7 @@ defmodule LiveSync.Socket do
           socket_acc
         else
           value = if value == :delete, do: nil, else: value
-          socket_acc.view.sync(key, value, socket_acc)
+          sync(socket_acc, key, value, records)
         end
       end)
 
@@ -60,6 +60,28 @@ defmodule LiveSync.Socket do
 
   def handle_info(_msg, socket, _opts) do
     {:cont, socket}
+  end
+
+  defp sync(socket, key, value, operations) do
+    operations =
+      case value do
+        nil ->
+          :delete
+
+        %{} = value ->
+          {schema, id} = LiveSync.lookup_info(value)
+
+          Enum.find_value(operations, fn {op, record} ->
+            if record.__struct__ == schema and record.id == id do
+              op
+            end
+          end)
+
+        _list ->
+          operations
+      end
+
+    socket.view.sync(key, value, operations, socket)
   end
 
   # TODO: changesets
