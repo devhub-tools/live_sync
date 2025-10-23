@@ -1,6 +1,6 @@
 # LiveSync
 
-![coverbot](https://img.shields.io/endpoint?url=https://private.devhub.tools/coverbot/v1/devhub-tools/live_sync/main/badge.json)
+![coverbot](https://img.shields.io/endpoint?url=https://private.devhub.cloud/coverbot/v1/devhub-tools/live_sync/main/badge.json)
 [![Hex.pm](https://img.shields.io/hexpm/v/live_sync.svg)](https://hex.pm/packages/live_sync)
 [![Documentation](https://img.shields.io/badge/documentation-gray)](https://hexdocs.pm/live_sync)
 

@@ -63,7 +63,7 @@ jobs:
       - name: Check Code Coverage
         uses: devhub-tools/coverbot-action@v1
         with:
-          domain: private.devhub.tools
+          domain: private.devhub.cloud
           format: elixir
           file: cover/excoveralls.json
           devhub_api_key: ${{ secrets.DEVHUB_API_KEY }}
