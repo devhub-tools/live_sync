@@ -77,7 +77,10 @@ defmodule LiveSync.Socket do
             end
           end)
 
-        _list ->
+        [head | _rest] ->
+          Enum.filter(operations, fn {_op, record} -> record.__struct__ == head.__struct__ end)
+
+        _other ->
           operations
       end
 
