@@ -13,7 +13,7 @@ defmodule LiveSync.LivePage do
 
   def mount(%{"id" => id}, session, socket) do
     data = LiveSync.Example |> Repo.get!(id) |> Repo.preload([:parent, :children, :ignored])
-    {:ok, assign(socket, organization_id: 1, examples: [data], data: data, test: session["test"])}
+    {:ok, assign(socket, examples: [data], data: data, test: session["test"])}
   end
 
   def sync(:examples, updated, socket) do

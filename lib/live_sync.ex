@@ -191,17 +191,13 @@ defmodule LiveSync do
 
   @doc false
   def on_mount(opts, _params, _session, socket) do
-    socket =
-      socket
-      |> attach_hook(:live_sync, :handle_params, fn _params, _uri, socket ->
-        if connected?(socket) do
-          subscription_key = socket.assigns[opts[:subscription_key]]
-          LiveSync.Replication.subscribe("live_sync:#{subscription_key}")
-        end
+    if connected?(socket) do
+      subscription_key = socket.assigns[opts[:subscription_key]]
+      LiveSync.Replication.subscribe("live_sync:#{subscription_key}")
+    end
 
-        {:cont, socket}
-      end)
-      |> attach_hook(:sync, :handle_info, fn msg, socket ->
+    socket =
+      attach_hook(socket, :sync, :handle_info, fn msg, socket ->
         LiveSync.Socket.handle_info(msg, socket, opts)
       end)
 
