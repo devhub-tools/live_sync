@@ -13,6 +13,7 @@ CREATE TABLE examples (
   parent_id bytea REFERENCES examples(id),
   organization_id integer,
   input jsonb,
+  tags text[],
   embed_one jsonb,
   embed_many jsonb
 );

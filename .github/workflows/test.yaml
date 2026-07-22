@@ -35,14 +35,10 @@ jobs:
 
       - uses: actions/checkout@v4
 
-      - uses: erlef/setup-beam@v1
-        id: setup-elixir
-        with:
-          version-type: strict
-          version-file: .tool-versions
+      - uses: jdx/mise-action@v2
 
       - name: Cache Deps
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: deps
           key: ${{ runner.os }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
@@ -50,7 +46,7 @@ jobs:
             ${{ runner.os }}-mix-
 
       - name: Cache Build
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: _build
           key: ${{ runner.os }}-build-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
@@ -76,14 +72,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: erlef/setup-beam@v1
-        id: setup-elixir
-        with:
-          version-type: strict
-          version-file: .tool-versions
+      - uses: jdx/mise-action@v2
 
       - name: Cache Deps
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: deps
           key: ${{ runner.os }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
@@ -91,7 +83,7 @@ jobs:
             ${{ runner.os }}-mix-
 
       - name: Cache Build
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: _build
           key: ${{ runner.os }}-build-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
@@ -111,14 +103,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: erlef/setup-beam@v1
-        id: setup-elixir
-        with:
-          version-type: strict
-          version-file: .tool-versions
+      - uses: jdx/mise-action@v2
 
       - name: Cache Deps
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: deps
           key: ${{ runner.os }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
@@ -126,7 +114,7 @@ jobs:
             ${{ runner.os }}-mix-
 
       - name: Cache Build
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: _build
           key: ${{ runner.os }}-build-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
@@ -143,14 +131,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: erlef/setup-beam@v1
-        id: setup-elixir
-        with:
-          version-type: strict
-          version-file: .tool-versions
+      - uses: jdx/mise-action@v2
 
       - name: Cache Deps
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: deps
           key: ${{ runner.os }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
@@ -158,7 +142,7 @@ jobs:
             ${{ runner.os }}-mix-
 
       - name: Cache Build
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: _build
           key: ${{ runner.os }}-build-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
@@ -177,14 +161,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: erlef/setup-beam@v1
-        id: setup-elixir
-        with:
-          version-type: strict
-          version-file: .tool-versions
+      - uses: jdx/mise-action@v2
 
       - name: Cache Deps
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: deps
           key: ${{ runner.os }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
@@ -192,7 +172,7 @@ jobs:
             ${{ runner.os }}-mix-
 
       - name: Cache Build
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: _build
           key: ${{ runner.os }}-build-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}

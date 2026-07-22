@@ -29,7 +29,7 @@ defmodule LiveSync.DataCase do
 
     if cleanup = tags[:cleanup] do
       on_exit(fn ->
-        Ecto.Adapters.SQL.Sandbox.checkout(LiveSync.Repo, sandbox: false)
+        Sandbox.checkout(LiveSync.Repo, sandbox: false)
         LiveSync.Repo.query!("TRUNCATE ONLY #{Enum.join(cleanup, ",")}")
       end)
     end

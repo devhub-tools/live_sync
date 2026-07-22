@@ -6,7 +6,7 @@ defmodule LiveSync.SocketTest do
   alias LiveSync.Repo
 
   setup do
-    LiveSync.start_link(repo: LiveSync.Repo, otp_app: :live_sync)
+    LiveSync.start_link(repo: Repo, otp_app: :live_sync)
     :ok
   end
 
