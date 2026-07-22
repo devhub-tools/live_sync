@@ -13,6 +13,7 @@ defmodule LiveSync.Example do
     field :enabled, :boolean, default: true
     field :organization_id, :integer
     field :input, :map
+    field :tags, {:array, :string}
 
     embeds_one :embed_one, EmbedOne, on_replace: :delete do
       field :name, :string
@@ -29,7 +30,7 @@ defmodule LiveSync.Example do
 
   def changeset(struct \\ %__MODULE__{}, params) do
     struct
-    |> cast(params, [:name, :enabled, :input, :organization_id, :parent_id])
+    |> cast(params, [:name, :enabled, :input, :tags, :organization_id, :parent_id])
     |> cast_embed(:embed_one, with: &embed_changeset/2)
     |> cast_embed(:embed_many, with: &embed_changeset/2)
   end

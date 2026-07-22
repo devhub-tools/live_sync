@@ -281,9 +281,7 @@ defmodule LiveSync.Replication do
 
   defp load_value({:array, type}, value) do
     value
-    |> String.replace_leading("{", "")
-    |> String.replace_trailing("}", "")
-    |> String.split(",")
+    |> parse_array()
     |> Enum.map(&load_value(type, &1))
   end
 
@@ -307,6 +305,36 @@ defmodule LiveSync.Replication do
   defp load_value(type, value) do
     Ecto.Type.cast!(type, value)
   end
+
+  # Postgres delivers arrays in its text output format, e.g.
+  #   {"a, b","c",NULL,plain}
+  # Any element containing a comma, quote, brace, backslash or whitespace (or an
+  # empty string) is double-quoted, with `"` and `\` backslash-escaped inside,
+  # and an unquoted NULL means nil. Splitting on `,` corrupts quoted elements, so
+  # we walk the literal, returning raw strings (or nil) for load_value/2 to cast.
+  defp parse_array("{" <> rest), do: parse_array(rest, [])
+
+  defp parse_array("}" <> _rest, acc), do: Enum.reverse(acc)
+  defp parse_array("," <> rest, acc), do: parse_array(rest, acc)
+
+  defp parse_array(<<?", rest::binary>>, acc) do
+    {value, rest} = parse_quoted(rest, "")
+    parse_array(rest, [value | acc])
+  end
+
+  defp parse_array(binary, acc) do
+    {value, rest} = parse_unquoted(binary, "")
+    parse_array(rest, [value | acc])
+  end
+
+  defp parse_quoted(<<?\\, char::utf8, rest::binary>>, acc), do: parse_quoted(rest, <<acc::binary, char::utf8>>)
+  defp parse_quoted(<<?", rest::binary>>, acc), do: {acc, rest}
+  defp parse_quoted(<<char::utf8, rest::binary>>, acc), do: parse_quoted(rest, <<acc::binary, char::utf8>>)
+
+  # a nil element is only ever an unquoted NULL; a real "NULL" string is quoted
+  defp parse_unquoted(<<char, _rest::binary>> = binary, "NULL") when char in [?,, ?}], do: {nil, binary}
+  defp parse_unquoted(<<char, _rest::binary>> = binary, acc) when char in [?,, ?}], do: {acc, binary}
+  defp parse_unquoted(<<char::utf8, rest::binary>>, acc), do: parse_unquoted(rest, <<acc::binary, char::utf8>>)
 
   @epoch DateTime.to_unix(~U[2000-01-01 00:00:00Z], :microsecond)
   defp current_time, do: System.os_time(:microsecond) - @epoch
