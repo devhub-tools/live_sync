@@ -318,23 +318,28 @@ defmodule LiveSync.Replication do
   defp parse_array("," <> rest, acc), do: parse_array(rest, acc)
 
   defp parse_array(<<?", rest::binary>>, acc) do
-    {value, rest} = parse_quoted(rest, "")
+    {value, rest} = parse_quoted(rest, [])
     parse_array(rest, [value | acc])
   end
 
   defp parse_array(binary, acc) do
-    {value, rest} = parse_unquoted(binary, "")
+    {value, rest} = parse_unquoted(binary, [])
     parse_array(rest, [value | acc])
   end
 
-  defp parse_quoted(<<?\\, char::utf8, rest::binary>>, acc), do: parse_quoted(rest, <<acc::binary, char::utf8>>)
-  defp parse_quoted(<<?", rest::binary>>, acc), do: {acc, rest}
-  defp parse_quoted(<<char::utf8, rest::binary>>, acc), do: parse_quoted(rest, <<acc::binary, char::utf8>>)
+  defp parse_quoted(<<?\\, char::utf8, rest::binary>>, acc), do: parse_quoted(rest, [<<char::utf8>> | acc])
+  defp parse_quoted(<<?", rest::binary>>, acc), do: {IO.iodata_to_binary(Enum.reverse(acc)), rest}
+  defp parse_quoted(<<char::utf8, rest::binary>>, acc), do: parse_quoted(rest, [<<char::utf8>> | acc])
 
   # a nil element is only ever an unquoted NULL; a real "NULL" string is quoted
-  defp parse_unquoted(<<char, _rest::binary>> = binary, "NULL") when char in [?,, ?}], do: {nil, binary}
-  defp parse_unquoted(<<char, _rest::binary>> = binary, acc) when char in [?,, ?}], do: {acc, binary}
-  defp parse_unquoted(<<char::utf8, rest::binary>>, acc), do: parse_unquoted(rest, <<acc::binary, char::utf8>>)
+  defp parse_unquoted(<<char, _rest::binary>> = binary, acc) when char in [?,, ?}] do
+    case IO.iodata_to_binary(Enum.reverse(acc)) do
+      "NULL" -> {nil, binary}
+      value -> {value, binary}
+    end
+  end
+
+  defp parse_unquoted(<<char::utf8, rest::binary>>, acc), do: parse_unquoted(rest, [<<char::utf8>> | acc])
 
   @epoch DateTime.to_unix(~U[2000-01-01 00:00:00Z], :microsecond)
   defp current_time, do: System.os_time(:microsecond) - @epoch
