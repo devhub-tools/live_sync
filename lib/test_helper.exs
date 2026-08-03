@@ -1,6 +1,7 @@
 LiveSync.Repo.start_link()
 LiveSync.Endpoint.start_link()
 
+LiveSync.Repo.query!("DROP TABLE IF EXISTS example_tags;")
 LiveSync.Repo.query!("DROP TABLE IF EXISTS ignored;")
 LiveSync.Repo.query!("DROP TABLE IF EXISTS examples;")
 LiveSync.Repo.query("DROP PUBLICATION live_sync;")
@@ -25,6 +26,14 @@ CREATE TABLE ignored (
   name text,
   example_id bytea REFERENCES examples(id),
   organization_id integer
+);
+""")
+
+LiveSync.Repo.query!("""
+CREATE TABLE example_tags (
+  name text,
+  example_id bytea REFERENCES examples(id),
+  PRIMARY KEY (name, example_id)
 );
 """)
 
