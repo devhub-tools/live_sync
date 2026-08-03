@@ -7,7 +7,7 @@ defmodule LiveSync.ReplicationTest do
   alias LiveSync.Replication
   alias LiveSync.Repo
 
-  @moduletag cleanup: ["ignored", "examples"]
+  @moduletag cleanup: ["example_tags", "ignored", "examples"]
 
   setup do
     LiveSync.start_link(repo: Repo, otp_app: :live_sync)

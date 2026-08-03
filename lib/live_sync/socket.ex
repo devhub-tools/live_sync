@@ -69,10 +69,10 @@ defmodule LiveSync.Socket do
           :delete
 
         %{} = value ->
-          {schema, id} = LiveSync.lookup_info(value)
+          lookup = LiveSync.lookup_info(value)
 
           Enum.find_value(operations, fn {op, record} ->
-            if record.__struct__ == schema and record.id == id do
+            if LiveSync.lookup_info(record) == lookup do
               op
             end
           end)
@@ -206,9 +206,9 @@ defmodule LiveSync.Socket do
         update.__struct__ == assoc.related and
           Map.get(update, assoc.related_key) != Map.get(parent, assoc.owner_key)
       end)
-      |> Enum.map(fn {_lookup, {_op, update}} -> update.id end)
+      |> Enum.map(fn {lookup, {_op, _update}} -> lookup end)
 
-    Enum.filter(list, &(is_map(&1) && &1.id not in records_to_remove))
+    Enum.filter(list, &(is_map(&1) && LiveSync.lookup_info(&1) not in records_to_remove))
   end
 
   defp maybe_remove_from_association(record, _parent, _assoc, _updates), do: record

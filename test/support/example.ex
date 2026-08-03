@@ -26,6 +26,7 @@ defmodule LiveSync.Example do
     belongs_to :parent, LiveSync.Example, type: :binary_id, foreign_key: :parent_id
     has_many :children, LiveSync.Example, foreign_key: :parent_id
     has_many :ignored, LiveSync.Ignored, foreign_key: :example_id
+    has_many :example_tags, LiveSync.ExampleTag, foreign_key: :example_id
   end
 
   def changeset(struct \\ %__MODULE__{}, params) do

@@ -2,6 +2,7 @@ defmodule LiveSync.SocketTest do
   use LiveSync.ConnCase
 
   alias LiveSync.Example
+  alias LiveSync.ExampleTag
   alias LiveSync.Ignored
   alias LiveSync.Repo
 
@@ -177,6 +178,25 @@ defmodule LiveSync.SocketTest do
              {"p", [{"class", "data-child-name"}], ["child"]},
              {"p", [{"class", "data-child-name"}], ["replication"]}
            ] == Floki.find(parsed_html, ".data-child-name")
+  end
+
+  test "works with associations without an id", %{conn: conn} do
+    example = Repo.insert!(%Example{organization_id: 1, name: "replication", enabled: false})
+    Repo.insert!(%ExampleTag{name: "tag", example_id: example.id})
+
+    {:ok, view, html} = conn |> get("/#{example.id}") |> live()
+
+    parsed_html = Floki.parse_document!(html)
+    assert parsed_html |> Floki.find(".data-tag-name") |> Floki.text() == "tag"
+
+    Repo.update!(change(example, name: "more replication"))
+
+    assert_receive :synced
+    html = render(view)
+
+    parsed_html = Floki.parse_document!(html)
+    assert parsed_html |> Floki.find("#data-name") |> Floki.text() == "more replication"
+    assert parsed_html |> Floki.find(".data-tag-name") |> Floki.text() == "tag"
   end
 
   test "ignores non-watched schemas", %{conn: conn} do

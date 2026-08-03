@@ -12,7 +12,7 @@ defmodule LiveSync.LivePage do
   alias LiveSync.Repo
 
   def mount(%{"id" => id}, session, socket) do
-    data = LiveSync.Example |> Repo.get!(id) |> Repo.preload([:parent, :children, :ignored])
+    data = LiveSync.Example |> Repo.get!(id) |> Repo.preload([:parent, :children, :ignored, :example_tags])
     {:ok, assign(socket, examples: [data], data: data, test: session["test"])}
   end
 
@@ -23,7 +23,7 @@ defmodule LiveSync.LivePage do
   end
 
   def sync(:data, value, socket) do
-    data = Repo.preload(value, [:parent, :children])
+    data = Repo.preload(value, [:parent, :children, :example_tags])
     assign(socket, data: data)
   end
 
@@ -36,6 +36,7 @@ defmodule LiveSync.LivePage do
       <p :if={not is_nil(@data.parent)} id="data-parent-name">{@data.parent.name}</p>
       <p :for={child <- @data.children} class="data-child-name">{child.name}</p>
       <p :for={ignored <- @data.ignored} class="data-ignored-name">{ignored.name}</p>
+      <p :for={tag <- @data.example_tags} class="data-tag-name">{tag.name}</p>
     </div>
     <div id="examples">
       <div :for={example <- @examples}>
