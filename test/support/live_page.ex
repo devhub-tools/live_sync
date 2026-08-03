@@ -23,7 +23,7 @@ defmodule LiveSync.LivePage do
   end
 
   def sync(:data, value, socket) do
-    data = Repo.preload(value, [:parent, :children, :example_tags])
+    data = Repo.preload(value, [:parent, :children])
     assign(socket, data: data)
   end
 
