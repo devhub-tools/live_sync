@@ -172,12 +172,8 @@ defmodule LiveSync do
     quote do
       on_mount({LiveSync, unquote(opts)})
 
-      def sync(key, value, socket), do: assign(socket, key, value)
-      def sync(key, value, _operations, socket), do: sync(key, value, socket)
-
+      # the fallbacks go last so they catch whatever the LiveView's own clauses don't
       @before_compile {LiveSync, :add_sync_fallback}
-
-      defoverridable sync: 3, sync: 4
     end
   end
 
@@ -205,7 +201,7 @@ defmodule LiveSync do
   end
 
   def opts(module) do
-    LiveSync.Watch.impl_for(struct(module)).opts()
+    LiveSync.Watch.impl_for!(struct(module)).opts()
   end
 
   @doc """
@@ -228,7 +224,6 @@ defmodule LiveSync do
       2
   """
   def subscription_key(struct) do
-    impl = LiveSync.Watch.impl_for(struct)
-    impl.subscription_key(struct)
+    LiveSync.Watch.impl_for!(struct).subscription_key(struct)
   end
 end
